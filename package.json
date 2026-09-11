@@ -6,8 +6,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
+
     "test:restaurants": "node test/restaurantTest.js",
     "test": "vitest"
+    "test:restaurants": "node test/restaurantTest.js"
   },
   "keywords": [
     "food-ordering",
