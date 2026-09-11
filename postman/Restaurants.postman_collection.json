@@ -1,0 +1,145 @@
+{
+  "info": {
+    "name": "Team 3 - Restaurant Management (Mostafa Barakat)",
+    "_postman_id": "a3c7e1d0-4b2f-4d8a-9c11-restaurants-module",
+    "description": "CRUD requests for /api/restaurants. Set collection variables before running.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001" },
+    { "key": "ownerToken", "value": "PASTE_OWNER_JWT_HERE" },
+    { "key": "otherOwnerToken", "value": "PASTE_SECOND_OWNER_JWT_HERE" },
+    { "key": "customerToken", "value": "PASTE_CUSTOMER_JWT_HERE" },
+    { "key": "restaurantId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Create restaurant - owner success",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "if (json.data && json.data.restaurant && json.data.restaurant._id) {",
+              "  pm.collectionVariables.set('restaurantId', json.data.restaurant._id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{ownerToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Cairo Kitchen\",\n  \"description\": \"Egyptian home cooking\",\n  \"address\": \"Nasr City, Cairo\",\n  \"isOpen\": true\n}"
+        },
+        "url": "{{baseUrl}}/api/restaurants"
+      }
+    },
+    {
+      "name": "Create restaurant - missing token",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Cairo Kitchen\",\n  \"description\": \"Egyptian home cooking\",\n  \"address\": \"Nasr City, Cairo\"\n}"
+        },
+        "url": "{{baseUrl}}/api/restaurants"
+      }
+    },
+    {
+      "name": "Create restaurant - customer forbidden",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Cairo Kitchen\",\n  \"description\": \"Egyptian home cooking\",\n  \"address\": \"Nasr City, Cairo\"\n}"
+        },
+        "url": "{{baseUrl}}/api/restaurants"
+      }
+    },
+    {
+      "name": "List restaurants",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/restaurants"
+      }
+    },
+    {
+      "name": "Get restaurant by id",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/restaurants/{{restaurantId}}"
+      }
+    },
+    {
+      "name": "Get restaurant - invalid id",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/restaurants/not-a-real-id"
+      }
+    },
+    {
+      "name": "Update restaurant - owner success",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{ownerToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"isOpen\": false,\n  \"description\": \"Temporarily closed for renovation\"\n}"
+        },
+        "url": "{{baseUrl}}/api/restaurants/{{restaurantId}}"
+      }
+    },
+    {
+      "name": "Update restaurant - other owner forbidden",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{otherOwnerToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Stolen Restaurant\"\n}"
+        },
+        "url": "{{baseUrl}}/api/restaurants/{{restaurantId}}"
+      }
+    },
+    {
+      "name": "Delete restaurant - other owner forbidden",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{otherOwnerToken}}" }
+        ],
+        "url": "{{baseUrl}}/api/restaurants/{{restaurantId}}"
+      }
+    },
+    {
+      "name": "Delete restaurant - owner success",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{ownerToken}}" }
+        ],
+        "url": "{{baseUrl}}/api/restaurants/{{restaurantId}}"
+      }
+    }
+  ]
+}
