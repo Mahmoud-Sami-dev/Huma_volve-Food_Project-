@@ -1,4 +1,7 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> f0937da06293a7dbe9b70db12c52a75cdf08d6d3
 # Huma_volve-Food_Project-
 Food Ordering API
 
@@ -333,4 +336,8 @@ The Postman collection is located in:
 `postman/Food_Ordering_Auth.postman_collection.json`
 
 Import this file directly into Postman to test all 4 endpoints, all authentication failure states, and role-based authorization tests.
+<<<<<<< HEAD
 >>>>>>> develop
+=======
+
+>>>>>>> f0937da06293a7dbe9b70db12c52a75cdf08d6d3
