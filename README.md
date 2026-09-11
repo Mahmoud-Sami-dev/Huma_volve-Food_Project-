@@ -72,7 +72,7 @@ The User model is defined in `src/models/User.js`:
 
 | Field | Type | Description | Rules / Constraints |
 |---|---|---|---|
-| `name` | String | User's full name | Required, trimmed, max 50 chars |
+| `name` | String | User's full name | Required, trimmed, min 2 chars, max 100 chars |
 | `email` | String | User's email | Required, unique, trimmed, lowercase, valid email format |
 | `password` | String | Hashed password | Required, min 6 chars, `select: false` (never exposed) |
 | `role` | String | Role assigned | Enum: `['admin', 'owner', 'customer']`, default: `'customer'` |
@@ -239,7 +239,7 @@ router.get('/admin/users', protect, authorize('admin'), getAllUsers);
 |---|---|---|---|
 | Duplicate Email | Registering with an existing email | `400 Bad Request` | `"Email already registered"` |
 | Missing Registration Fields | Missing name, email, or password | `400 Bad Request` | `"Please provide name, email, and password"` |
-| Weak/Short Password | Password < 6 characters | `400 Bad Request` | `"Password must be at least 6 characters long"` |
+| Weak/Short Password | Password < 6 characters | `400 Bad Request` | `"Password must be at least 6 characters"` |
 | Public Admin Registration | Attempting `role: "admin"` in public registration | `400 Bad Request` | `"Cannot register as admin. Admin accounts cannot be created publicly"` |
 | Invalid Role Input | Role is not customer or owner | `400 Bad Request` | `"Invalid role. Allowed registration roles are: customer, owner"` |
 | Missing Login Credentials | Missing email or password | `400 Bad Request` | `"Please provide email and password"` |

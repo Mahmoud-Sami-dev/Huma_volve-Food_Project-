@@ -22,7 +22,7 @@ const register = async (req, res, next) => {
     if (typeof password !== 'string' || password.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters long'
+        message: 'Password must be at least 6 characters'
       });
     }
 
@@ -57,7 +57,7 @@ const register = async (req, res, next) => {
       });
     }
 
-    // 6. Create user (password is hashed automatically by pre-save hook)
+    // 6. Create user (password is hashed automatically by pre-save hook in User model)
     const user = await User.create({
       name: name.trim(),
       email: normalizedEmail,
@@ -114,8 +114,8 @@ const login = async (req, res, next) => {
       });
     }
 
-    // 3. Compare password
-    const isMatch = await user.matchPassword(password);
+    // 3. Compare password using the User model method: comparePassword
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -150,7 +150,6 @@ const login = async (req, res, next) => {
  */
 const getMe = async (req, res, next) => {
   try {
-    // req.user is set by protect middleware
     res.status(200).json({
       success: true,
       data: {
@@ -173,8 +172,6 @@ const getMe = async (req, res, next) => {
  * @access  Public
  */
 const logout = async (req, res) => {
-  // In stateless JWT authentication, the client discards the token.
-  // This endpoint provides a consistent contract for logging out.
   res.status(200).json({
     success: true,
     message: 'Logged out successfully'

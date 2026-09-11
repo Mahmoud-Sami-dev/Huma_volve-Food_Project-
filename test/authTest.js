@@ -17,8 +17,25 @@ const User = require('../src/models/User');
 async function runTests() {
   console.log('--- Starting Authentication & Authorization Tests ---\n');
 
-  // Test 1: JWT generation & verification
-  console.log('Test 1: JWT Token Generation & Verification');
+  // Test 1: User Model Password Hashing & comparePassword
+  console.log('Test 1: User Model Password Hashing & comparePassword');
+  const testPlainPassword = 'mypassword123';
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(testPlainPassword, salt);
+  const mockUserInstance = new User({
+    name: 'Test User',
+    email: 'test@example.com',
+    password: hashedPassword,
+    role: 'customer'
+  });
+  const isCorrectMatch = await mockUserInstance.comparePassword(testPlainPassword);
+  const isWrongMatch = await mockUserInstance.comparePassword('wrongpassword');
+  assert.strictEqual(isCorrectMatch, true, 'comparePassword should match correct password');
+  assert.strictEqual(isWrongMatch, false, 'comparePassword should reject incorrect password');
+  console.log('✔ PASS: User model comparePassword works as expected\n');
+
+  // Test 2: JWT generation & verification
+  console.log('Test 2: JWT Token Generation & Verification');
   const testUserId = '65df00000000000000000001';
   const testRole = 'customer';
   const token = generateToken(testUserId, testRole);
@@ -28,8 +45,8 @@ async function runTests() {
   assert.strictEqual(decoded.role, testRole, 'Decoded role should match');
   console.log('✔ PASS: JWT generation and decoding\n');
 
-  // Test 2: Role Authorization Middleware
-  console.log('Test 2: Role Authorization Middleware');
+  // Test 3: Role Authorization Middleware
+  console.log('Test 3: Role Authorization Middleware');
   const ownerAuth = authorize('owner', 'admin');
   let allowed = false;
   const mockReqCustomer = { user: { role: 'customer' } };
@@ -62,8 +79,8 @@ async function runTests() {
   assert.strictEqual(ownerAllowed, true, 'Owner should be allowed');
   console.log('✔ PASS: Owner successfully authorized\n');
 
-  // Test 3: Protect Middleware - Missing Token
-  console.log('Test 3: Protect Middleware - Missing Token');
+  // Test 4: Protect Middleware - Missing Token
+  console.log('Test 4: Protect Middleware - Missing Token');
   const mockReqNoToken = { headers: {} };
   const mockResNoToken = {
     status(code) {
@@ -82,8 +99,8 @@ async function runTests() {
   assert(mockResNoToken.body.message.includes('no token provided'), 'Message should indicate missing token');
   console.log('✔ PASS: Missing token caught with 401\n');
 
-  // Test 4: Protect Middleware - Invalid Token
-  console.log('Test 4: Protect Middleware - Invalid Token');
+  // Test 5: Protect Middleware - Invalid Token
+  console.log('Test 5: Protect Middleware - Invalid Token');
   const mockReqInvalidToken = { headers: { authorization: 'Bearer thisisaninvalidtoken' } };
   const mockResInvalidToken = {
     status(code) {
@@ -102,10 +119,9 @@ async function runTests() {
   assert(mockResInvalidToken.body.message.includes('Invalid token'), 'Message should indicate invalid token');
   console.log('✔ PASS: Invalid token caught with 401\n');
 
-  // Test 5: Protect Middleware - Expired Token
-  console.log('Test 5: Protect Middleware - Expired Token');
+  // Test 6: Protect Middleware - Expired Token
+  console.log('Test 6: Protect Middleware - Expired Token');
   const expiredToken = jwt.sign({ id: testUserId, role: 'customer' }, process.env.JWT_SECRET, { expiresIn: '0s' });
-  // Small delay to ensure expiration
   await new Promise((r) => setTimeout(r, 100));
   const mockReqExpiredToken = { headers: { authorization: `Bearer ${expiredToken}` } };
   const mockResExpiredToken = {
@@ -125,11 +141,11 @@ async function runTests() {
   assert(mockResExpiredToken.body.message.includes('expired'), 'Message should indicate expired token');
   console.log('✔ PASS: Expired token caught with 401\n');
 
-  // Test 6: Registration & Login Controller logic unit tests
-  console.log('Test 6: Controller Unit Validation');
+  // Test 7: Controller Unit Validation & Edge Cases
+  console.log('Test 7: Controller Unit Validation & Edge Cases');
   const { register, login, logout, getMe } = require('../src/controllers/authController');
 
-  // 6a: Register missing fields
+  // 7a: Register missing fields
   const mockResRegisterMissing = {
     status(code) { this.statusCode = code; return this; },
     json(body) { this.body = body; return this; }
@@ -138,7 +154,7 @@ async function runTests() {
   assert.strictEqual(mockResRegisterMissing.statusCode, 400, 'Should return 400 for missing fields');
   console.log('✔ PASS: Register missing fields returns 400');
 
-  // 6b: Register admin attempt
+  // 7b: Register admin attempt
   const mockResAdmin = {
     status(code) { this.statusCode = code; return this; },
     json(body) { this.body = body; return this; }
@@ -148,7 +164,7 @@ async function runTests() {
   assert(mockResAdmin.body.message.includes('Cannot register as admin'), 'Should prevent admin registration');
   console.log('✔ PASS: Register admin role blocked with 400');
 
-  // 6c: Register invalid role
+  // 7c: Register invalid role
   const mockResInvalidRole = {
     status(code) { this.statusCode = code; return this; },
     json(body) { this.body = body; return this; }
@@ -157,7 +173,7 @@ async function runTests() {
   assert.strictEqual(mockResInvalidRole.statusCode, 400, 'Should return 400 for invalid role');
   console.log('✔ PASS: Register invalid role returns 400');
 
-  // 6d: Register short password
+  // 7d: Register short password
   const mockResShortPass = {
     status(code) { this.statusCode = code; return this; },
     json(body) { this.body = body; return this; }
@@ -166,7 +182,7 @@ async function runTests() {
   assert.strictEqual(mockResShortPass.statusCode, 400, 'Should return 400 for short password');
   console.log('✔ PASS: Register short password returns 400');
 
-  // 6e: Login missing fields
+  // 7e: Login missing fields
   const mockResLoginMissing = {
     status(code) { this.statusCode = code; return this; },
     json(body) { this.body = body; return this; }
@@ -175,7 +191,7 @@ async function runTests() {
   assert.strictEqual(mockResLoginMissing.statusCode, 400, 'Should return 400 for missing login password');
   console.log('✔ PASS: Login missing password returns 400');
 
-  // 6f: Logout endpoint
+  // 7f: Logout endpoint
   const mockResLogout = {
     status(code) { this.statusCode = code; return this; },
     json(body) { this.body = body; return this; }
@@ -185,7 +201,7 @@ async function runTests() {
   assert.strictEqual(mockResLogout.body.success, true, 'Should return success true');
   console.log('✔ PASS: Logout returns 200 OK');
 
-  // 6g: GetMe endpoint
+  // 7g: GetMe endpoint
   const mockResMe = {
     status(code) { this.statusCode = code; return this; },
     json(body) { this.body = body; return this; }

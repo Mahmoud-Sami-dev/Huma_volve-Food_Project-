@@ -7,19 +7,18 @@ const User = require('../models/User');
 const protect = async (req, res, next) => {
   let token;
 
-  // 1. Check for token in Authorization header
+  // 1. Check for Bearer token in Authorization header
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
-    // Format is "Bearer <token>"
     const parts = req.headers.authorization.split(' ');
     if (parts.length === 2) {
       token = parts[1];
     }
   }
 
-  // Missing token
+  // 2. Missing token
   if (!token) {
     return res.status(401).json({
       success: false,
@@ -28,12 +27,11 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    // 2. Verify token
+    // 3. Verify JWT
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 3. Find user belonging to token
+    // 4. Check if user still exists in database
     const currentUser = await User.findById(decoded.id);
-
     if (!currentUser) {
       return res.status(401).json({
         success: false,
@@ -41,7 +39,7 @@ const protect = async (req, res, next) => {
       });
     }
 
-    // 4. Attach user to request
+    // 5. Attach user to request
     req.user = currentUser;
     next();
   } catch (error) {
@@ -60,7 +58,7 @@ const protect = async (req, res, next) => {
 };
 
 /**
- * Middleware to restrict access to specified roles
+ * Middleware to restrict access based on user role
  * @param  {...string} roles - Allowed roles (e.g. 'admin', 'owner', 'customer')
  */
 const authorize = (...roles) => {

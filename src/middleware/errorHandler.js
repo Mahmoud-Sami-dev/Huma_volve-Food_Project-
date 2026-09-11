@@ -19,7 +19,7 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Mongoose duplicate key (code 11000)
+  // Mongoose duplicate key error (code 11000)
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue || {})[0] || 'field';
     const message = `${field.charAt(0).toUpperCase() + field.slice(1)} already registered`;

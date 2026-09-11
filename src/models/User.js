@@ -5,33 +5,34 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Please provide a name'],
+      required: [true, 'Name is required'],
       trim: true,
-      maxlength: [50, 'Name cannot be more than 50 characters']
+      minlength: [2, 'Name must be at least 2 characters'],
+      maxlength: [100, 'Name cannot exceed 100 characters']
     },
+
     email: {
       type: String,
-      required: [true, 'Please provide an email address'],
+      required: [true, 'Email is required'],
       unique: true,
-      trim: true,
       lowercase: true,
+      trim: true,
       match: [
         /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
-        'Please provide a valid email address'
+        'Please provide a valid email'
       ]
     },
+
     password: {
       type: String,
-      required: [true, 'Please provide a password'],
-      minlength: [6, 'Password must be at least 6 characters long'],
+      required: [true, 'Password is required'],
+      minlength: [6, 'Password must be at least 6 characters'],
       select: false
     },
+
     role: {
       type: String,
-      enum: {
-        values: ['admin', 'owner', 'customer'],
-        message: '{VALUE} is not a valid role. Allowed roles are: admin, owner, customer'
-      },
+      enum: ['admin', 'owner', 'customer'],
       default: 'customer'
     }
   },
@@ -40,7 +41,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Hash password before saving if modified
+// Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
     return next();
@@ -48,24 +49,13 @@ userSchema.pre('save', async function (next) {
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+
   next();
 });
 
-// Compare entered password with hashed password in database
-userSchema.methods.matchPassword = async function (enteredPassword) {
+// Compare entered password with hashed password
+userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
-};
-
-// Safe representation of user (removes password)
-userSchema.methods.toSafeObject = function () {
-  return {
-    _id: this._id,
-    name: this.name,
-    email: this.email,
-    role: this.role,
-    createdAt: this.createdAt,
-    updatedAt: this.updatedAt
-  };
 };
 
 module.exports = mongoose.model('User', userSchema);
