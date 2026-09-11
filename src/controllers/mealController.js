@@ -1,4 +1,4 @@
-const Meal = require('../models/Meal');
+const mealService = require('../services/mealService');
 exports.createMeal = async (req, res) => {
   try {
     const { restaurantId } = req.params;
@@ -8,7 +8,7 @@ exports.createMeal = async (req, res) => {
       return res.status(400).json({ message: 'Price must be greater than zero' });
     }
 
-    const meal = await Meal.create({
+    const meal = await mealService.createMeal({
       name,
       description,
       price,
@@ -24,7 +24,7 @@ exports.createMeal = async (req, res) => {
 exports.getRestaurantMeals = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    const meals = await Meal.find({ restaurant: restaurantId });
+    const meals = await mealService.getMealsByRestaurant(restaurantId);
     res.status(200).json(meals);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -32,7 +32,7 @@ exports.getRestaurantMeals = async (req, res) => {
 };
 exports.getMealById = async (req, res) => {
   try {
-    const meal = await Meal.findById(req.params.id);
+    const meal = await mealService.getMealById(req.params.id);
     if (!meal) {
       return res.status(404).json({ message: 'Meal not found' });
     }
@@ -48,7 +48,7 @@ exports.updateMeal = async (req, res) => {
       return res.status(400).json({ message: 'Price must be greater than zero' });
     }
 
-    const meal = await Meal.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const meal = await mealService.updateMeal(req.params.id, req.body);
     if (!meal) {
       return res.status(404).json({ message: 'Meal not found' });
     }
@@ -58,10 +58,9 @@ exports.updateMeal = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 exports.deleteMeal = async (req, res) => {
   try {
-    const meal = await Meal.findByIdAndDelete(req.params.id);
+    const meal = await mealService.deleteMeal(req.params.id);
     if (!meal) {
       return res.status(404).json({ message: 'Meal not found' });
     }
