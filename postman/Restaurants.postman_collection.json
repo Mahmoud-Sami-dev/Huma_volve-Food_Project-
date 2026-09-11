@@ -2,11 +2,11 @@
   "info": {
     "name": "Team 3 - Restaurant Management (Mostafa Barakat)",
     "_postman_id": "a3c7e1d0-4b2f-4d8a-9c11-restaurants-module",
-    "description": "CRUD requests for /api/restaurants. Set collection variables before running.",
+    "description": "CRUD requests for /api/restaurants. Get tokens from POST /api/auth/login, then set collection variables.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:3001" },
+    { "key": "baseUrl", "value": "http://localhost:5000" },
     { "key": "ownerToken", "value": "PASTE_OWNER_JWT_HERE" },
     { "key": "otherOwnerToken", "value": "PASTE_SECOND_OWNER_JWT_HERE" },
     { "key": "customerToken", "value": "PASTE_CUSTOMER_JWT_HERE" },

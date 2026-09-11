@@ -2,10 +2,12 @@ require('dotenv').config();
 const http = require('http');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
-const app = require('../app');
-const Restaurant = require('../models/Restaurant');
+const app = require('../src/app');
+const Restaurant = require('../src/models/Restaurant');
+const User = require('../src/models/User');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret_change_me';
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey_change_in_production';
+const JWT_SECRET = process.env.JWT_SECRET;
 const TEST_DB =
   process.env.MONGO_URI_TEST ||
   'mongodb://127.0.0.1:27017/food_ordering_restaurants_test';
@@ -14,17 +16,10 @@ let passed = 0;
 let failed = 0;
 let server;
 let baseUrl;
-const ownerId = new mongoose.Types.ObjectId();
-const otherOwnerId = new mongoose.Types.ObjectId();
-const customerId = new mongoose.Types.ObjectId();
-
-const ownerToken = jwt.sign({ id: ownerId, role: 'owner' }, JWT_SECRET, { expiresIn: '1h' });
-const otherOwnerToken = jwt.sign({ id: otherOwnerId, role: 'owner' }, JWT_SECRET, {
-  expiresIn: '1h',
-});
-const customerToken = jwt.sign({ id: customerId, role: 'customer' }, JWT_SECRET, {
-  expiresIn: '1h',
-});
+let ownerToken;
+let otherOwnerToken;
+let customerToken;
+let ownerId;
 
 const request = (method, path, { token, body } = {}) =>
   new Promise((resolve, reject) => {
@@ -40,7 +35,7 @@ const request = (method, path, { token, body } = {}) =>
         port: url.port,
         path: url.pathname,
         method,
-        headers,
+        headers
       },
       (res) => {
         let data = '';
@@ -79,6 +74,35 @@ const start = async () => {
 
   await mongoose.connect(TEST_DB);
   await Restaurant.deleteMany({});
+  await User.deleteMany({});
+
+  const owner = await User.create({
+    name: 'Owner One',
+    email: 'owner1@test.com',
+    password: 'password123',
+    role: 'owner'
+  });
+  const otherOwner = await User.create({
+    name: 'Owner Two',
+    email: 'owner2@test.com',
+    password: 'password123',
+    role: 'owner'
+  });
+  const customer = await User.create({
+    name: 'Customer One',
+    email: 'customer1@test.com',
+    password: 'password123',
+    role: 'customer'
+  });
+
+  ownerId = owner._id;
+  ownerToken = jwt.sign({ id: owner._id, role: owner.role }, JWT_SECRET, { expiresIn: '1h' });
+  otherOwnerToken = jwt.sign({ id: otherOwner._id, role: otherOwner.role }, JWT_SECRET, {
+    expiresIn: '1h'
+  });
+  customerToken = jwt.sign({ id: customer._id, role: customer.role }, JWT_SECRET, {
+    expiresIn: '1h'
+  });
 
   server = http.createServer(app);
   await new Promise((resolve) => {
@@ -90,14 +114,14 @@ const start = async () => {
   try {
     console.log('Test 1: Create restaurant requires login');
     const noToken = await request('POST', '/api/restaurants', {
-      body: { name: 'Cairo Kitchen', description: 'Home food', address: 'Cairo' },
+      body: { name: 'Cairo Kitchen', description: 'Home food', address: 'Cairo' }
     });
     assert(noToken.status === 401, 'Missing token caught with 401');
 
     console.log('\nTest 2: Customer cannot create a restaurant');
     const customerCreate = await request('POST', '/api/restaurants', {
       token: customerToken,
-      body: { name: 'Cairo Kitchen', description: 'Home food', address: 'Cairo' },
+      body: { name: 'Cairo Kitchen', description: 'Home food', address: 'Cairo' }
     });
     assert(customerCreate.status === 403, 'Customer rejected with 403 Forbidden');
 
@@ -108,8 +132,8 @@ const start = async () => {
         name: 'Cairo Kitchen',
         description: 'Egyptian home cooking',
         address: 'Nasr City, Cairo',
-        isOpen: true,
-      },
+        isOpen: true
+      }
     });
     assert(create.status === 201, 'Owner created restaurant with 201');
     assert(create.body?.data?.restaurant?.name === 'Cairo Kitchen', 'Saved restaurant name matches');
@@ -119,7 +143,7 @@ const start = async () => {
     console.log('\nTest 4: Create restaurant rejects missing fields');
     const missing = await request('POST', '/api/restaurants', {
       token: ownerToken,
-      body: { name: 'No Address' },
+      body: { name: 'No Address' }
     });
     assert(missing.status === 400, 'Missing fields caught with 400');
 
@@ -143,7 +167,7 @@ const start = async () => {
     console.log('\nTest 8: Owner can update their own restaurant');
     const updateOwn = await request('PATCH', `/api/restaurants/${restaurantId}`, {
       token: ownerToken,
-      body: { isOpen: false, name: 'Cairo Kitchen Closed' },
+      body: { isOpen: false, name: 'Cairo Kitchen Closed' }
     });
     assert(updateOwn.status === 200, 'Owner update returns 200');
     assert(updateOwn.body?.data?.restaurant?.isOpen === false, 'isOpen updated to false');
@@ -152,18 +176,18 @@ const start = async () => {
     console.log('\nTest 9: Other owner cannot modify this restaurant');
     const updateOther = await request('PATCH', `/api/restaurants/${restaurantId}`, {
       token: otherOwnerToken,
-      body: { name: 'Stolen Name' },
+      body: { name: 'Stolen Name' }
     });
     assert(updateOther.status === 403, 'Other owner rejected on update with 403');
 
     const deleteOther = await request('DELETE', `/api/restaurants/${restaurantId}`, {
-      token: otherOwnerToken,
+      token: otherOwnerToken
     });
     assert(deleteOther.status === 403, 'Other owner rejected on delete with 403');
 
     console.log('\nTest 10: Owner can delete their restaurant');
     const remove = await request('DELETE', `/api/restaurants/${restaurantId}`, {
-      token: ownerToken,
+      token: ownerToken
     });
     assert(remove.status === 200, 'Owner delete returns 200');
 
@@ -171,6 +195,7 @@ const start = async () => {
     assert(afterDelete.status === 404, 'Deleted restaurant is gone');
   } finally {
     await Restaurant.deleteMany({});
+    await User.deleteMany({});
     await mongoose.disconnect();
     await new Promise((resolve) => server.close(resolve));
   }
