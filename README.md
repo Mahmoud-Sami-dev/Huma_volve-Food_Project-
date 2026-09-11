@@ -259,3 +259,49 @@ The Postman collection is located in:
 `postman/Food_Ordering_Auth.postman_collection.json`
 
 Import this file directly into Postman to test all 4 endpoints, all authentication failure states, and role-based authorization tests.
+
+---
+
+## Restaurant Management Module
+
+**Assigned Engineer:** Mostafa Barakat  
+**Scope:** Full CRUD for restaurants, ownership checks, and open/closed status (`isOpen`).
+
+### Endpoints
+
+| Method | Endpoint | Access | Description |
+| ------ | -------- | ------ | ----------- |
+| POST | `/api/restaurants` | Owner or admin | Create a restaurant |
+| GET | `/api/restaurants` | Public | List restaurants |
+| GET | `/api/restaurants/:id` | Public | Get one restaurant |
+| PATCH | `/api/restaurants/:id` | Owner of that restaurant | Update a restaurant |
+| DELETE | `/api/restaurants/:id` | Owner of that restaurant | Delete a restaurant |
+
+### Restaurant data
+
+`name`, `description`, `address`, `owner` (User id), `isOpen` (default `true`).
+
+### Errors handled
+
+| Case | HTTP |
+| ---- | ---- |
+| Missing or invalid token | `401` |
+| Customer creating/updating/deleting | `403` |
+| Owner modifying a restaurant that is not theirs | `403` |
+| Invalid id or restaurant not found | `404` |
+| Missing name, description, or address | `400` |
+
+Orders should check `isOpen` before accepting an order.
+
+### Postman
+
+`postman/Restaurants.postman_collection.json`
+
+Log in with `POST /api/auth/login` as an owner, then paste the token into `ownerToken`.
+
+### Tests
+
+```bash
+npm run test:restaurants
+```
+

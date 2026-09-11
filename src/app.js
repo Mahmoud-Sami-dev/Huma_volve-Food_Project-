@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
+const restaurantRoutes = require('./routes/restaurantRoutes');
 const mealRoutes = require('./routes/mealRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -23,6 +24,7 @@ app.get('/', (req, res) => {
 
 // Mount module routes
 app.use('/api/auth', authRoutes);
+app.use('/api/restaurants', restaurantRoutes);
 app.use('/api', mealRoutes);
 
 // Catch-all 404 handler
