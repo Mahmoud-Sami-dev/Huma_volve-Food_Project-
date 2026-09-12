@@ -186,19 +186,3 @@ Recommended order:
 2. Restaurants: put the owner/customer/second-owner JWTs in the collection variables.
 3. Meals: put `ownerToken` and the real `restaurantId` in the collection variables. The Create Meal request saves the new `mealId` automatically.
 4. Orders: use the real restaurant and meal IDs created during testing.
-
-## 11. Important fixes in this version
-
-- Removed the duplicated/conflicting root server implementation by turning root `app.js`/`server.js` into wrappers.
-- Added startup validation for `MONGODB_URI` and `JWT_SECRET`.
-- Added `/health` endpoint and safer request body limits.
-- Hardened authentication input validation.
-- Protected meal create/update/delete routes with JWT + role authorization.
-- Added restaurant ownership checks to meal management.
-- Improved MongoDB error handling and graceful server shutdown.
-- Added stronger Mongoose validation and useful indexes.
-- Fixed owner order listing so owners can see orders from all of their restaurants.
-- Fixed Gemini controller error handling and made the model configurable.
-- Removed real credentials from `.env.example`.
-- Fixed the stale restaurant middleware test so it matches the current `src/middleware/auth.js` implementation.
-- Updated Postman meal/restaurant requests to use collection variables and authorization headers.
