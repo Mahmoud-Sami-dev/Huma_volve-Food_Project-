@@ -1,17 +1,3 @@
-تمام، فهمتك 😄 **أنت عايز تعمل الاختبار كله بإيدك في Postman، Request Request، من غير Collections جاهزة تعتمد عليها.**
-
-بما إن السيرفر شغال عندك على `5000`، هنستخدم:
-
-```text
-http://localhost:5000
-```
-
-وهديك **كل Endpoint + Method + URL + Body + Headers + المتوقع**.
-
-> **مهم:** اعمل الـRequests بالترتيب؛ لأننا هنحتاج `customerToken` و`ownerToken` و`restaurantId` و`mealId` و`orderId`.
-
----
-
 # 0️⃣ أول اختبار — Server
 
 ### GET
