@@ -1,21 +1,7 @@
 const Meal = require('../models/Meal');
 
-exports.createMeal = async (data) => {
-  return await Meal.create(data);
-};
-
-exports.getMealsByRestaurant = async (restaurantId) => {
-  return await Meal.find({ restaurant: restaurantId });
-};
-
-exports.getMealById = async (id) => {
-  return await Meal.findById(id);
-};
-
-exports.updateMeal = async (id, data) => {
-  return await Meal.findByIdAndUpdate(id, data, { new: true, runValidators: true });
-};
-
-exports.deleteMeal = async (id) => {
-  return await Meal.findByIdAndDelete(id);
-};
+exports.createMeal = (data) => Meal.create(data);
+exports.getMealsByRestaurant = (restaurantId) => Meal.find({ restaurant: restaurantId }).sort({ createdAt: -1 });
+exports.getMealById = (id) => Meal.findById(id);
+exports.updateMeal = (id, data) => Meal.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+exports.deleteMeal = (id) => Meal.findByIdAndDelete(id);
