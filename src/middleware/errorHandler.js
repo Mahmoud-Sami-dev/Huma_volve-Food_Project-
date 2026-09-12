@@ -1,47 +1,35 @@
-/**
- * Global Error Handler Middleware
- */
 const errorHandler = (err, req, res, next) => {
-  let error = { ...err };
-  error.message = err.message;
-
-  // Log error in development
-  if (process.env.NODE_ENV === 'development') {
+  if (process.env.NODE_ENV !== 'test') {
     console.error(err);
   }
 
-  // Mongoose bad ObjectId (CastError)
   if (err.name === 'CastError') {
-    const message = `Resource not found with id of ${err.value}`;
-    return res.status(404).json({
+    return res.status(400).json({
       success: false,
-      message
+      message: 'Invalid resource ID'
     });
   }
 
-  // Mongoose duplicate key error (code 11000)
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue || {})[0] || 'field';
-    const message = `${field.charAt(0).toUpperCase() + field.slice(1)} already registered`;
+    const label = field.charAt(0).toUpperCase() + field.slice(1);
     return res.status(400).json({
       success: false,
-      message
+      message: `${label} already registered`
     });
   }
 
-  // Mongoose validation error
   if (err.name === 'ValidationError') {
-    const message = Object.values(err.errors).map((val) => val.message).join(', ');
     return res.status(400).json({
       success: false,
-      message
+      message: Object.values(err.errors).map((item) => item.message).join(', ')
     });
   }
 
-  // Fallback server error
-  res.status(error.statusCode || 500).json({
+  const statusCode = err.statusCode || 500;
+  return res.status(statusCode).json({
     success: false,
-    message: error.message || 'Server Error'
+    message: statusCode === 500 ? 'Internal server error' : err.message
   });
 };
 
