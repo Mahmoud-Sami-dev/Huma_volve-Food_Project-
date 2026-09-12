@@ -5,6 +5,7 @@ const restaurantRoutes = require('./routes/restaurantRoutes');
 const mealRoutes = require('./routes/mealRoutes');
 const errorHandler = require('./middleware/errorHandler');
 const geminiRoutes = require('./routes/gemini.route');
+const orderRoutes = require('./routes/ordersRoutes');
 const app = express();
 
 // Enable CORS
@@ -27,6 +28,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api', mealRoutes);
 app.use('/api/ai', geminiRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Catch-all 404 handler
 app.use((req, res) => {
