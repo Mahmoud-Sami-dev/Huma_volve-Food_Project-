@@ -16,9 +16,10 @@ const orderItemSchema = new mongoose.Schema({
   price: {
     type: Number,
     required: [true, 'Price is required'],
-    min: [0.01, 'Price must be greater than zero']
+    min: [0, 'Price cannot be negative']
   }
 });
+
 
 const orderSchema = new mongoose.Schema(
   {
@@ -36,11 +37,14 @@ const orderSchema = new mongoose.Schema(
 
     items: {
       type: [orderItemSchema],
+
       required: true,
+
       validate: {
         validator: function (items) {
           return items.length > 0;
         },
+
         message: 'Order must contain at least one item'
       }
     },
@@ -53,6 +57,7 @@ const orderSchema = new mongoose.Schema(
 
     status: {
       type: String,
+
       enum: [
         'Pending',
         'Confirmed',
@@ -61,12 +66,15 @@ const orderSchema = new mongoose.Schema(
         'Delivered',
         'Cancelled'
       ],
+
       default: 'Pending'
     }
   },
+
   {
     timestamps: true
   }
 );
 
-module.exports = mongoose.model('Order', orderSchema);
+
+module.exports = mongoose.model('Orders', orderSchema);
