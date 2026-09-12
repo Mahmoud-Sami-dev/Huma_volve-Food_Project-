@@ -1,15 +1,14 @@
 const jwt = require('jsonwebtoken');
 
 const generateToken = (userId, role) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured');
+  }
+
   return jwt.sign(
-    {
-      id: userId,
-      role: role
-    },
+    { id: String(userId), role },
     process.env.JWT_SECRET,
-    {
-      expiresIn: process.env.JWT_EXPIRE || '7d'
-    }
+    { expiresIn: process.env.JWT_EXPIRE || '7d' }
   );
 };
 
