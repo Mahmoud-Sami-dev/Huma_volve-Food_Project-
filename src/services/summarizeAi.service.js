@@ -1,10 +1,10 @@
-exports.summarizeMeal = async (mealName, mealDescription) => {
-  const { GoogleGenAI } = await import("@google/genai");
+const summarizeMeal = async (mealName, mealDescription) => {
+  if (!process.env.GEMINI_API) {
+    throw new Error('GEMINI_API is not configured');
+  }
 
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API,
-  });
-
+  const { GoogleGenAI } = await import('@google/genai');
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API });
   const prompt = `
 Act as a food expert.
 
@@ -24,24 +24,26 @@ Important:
 - Keep it to 1–2 sentences.
 `;
 
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error("TIMEOUT")), 10000),
-  );
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('TIMEOUT')), 10000);
+  });
 
-  const response = await Promise.race([
-    ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: prompt,
-    }),
-    timeoutPromise,
-  ]);
+  try {
+    const response = await Promise.race([
+      ai.models.generateContent({
+        model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
+        contents: prompt
+      }),
+      timeoutPromise
+    ]);
 
-  const responseText = response.text || "";
-
-  // Empty AI response
-  if (!responseText.trim()) {
-    throw new Error("EMPTY_AI_RESPONSE");
+    const responseText = response.text || '';
+    if (!responseText.trim()) throw new Error('EMPTY_AI_RESPONSE');
+    return responseText.trim();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return responseText.trim();
 };
+
+module.exports = { summarizeMeal };
