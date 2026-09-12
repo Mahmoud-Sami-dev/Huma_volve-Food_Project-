@@ -1,0 +1,1113 @@
+تمام، فهمتك 😄 **أنت عايز تعمل الاختبار كله بإيدك في Postman، Request Request، من غير Collections جاهزة تعتمد عليها.**
+
+بما إن السيرفر شغال عندك على `5000`، هنستخدم:
+
+```text
+http://localhost:5000
+```
+
+وهديك **كل Endpoint + Method + URL + Body + Headers + المتوقع**.
+
+> **مهم:** اعمل الـRequests بالترتيب؛ لأننا هنحتاج `customerToken` و`ownerToken` و`restaurantId` و`mealId` و`orderId`.
+
+---
+
+# 0️⃣ أول اختبار — Server
+
+### GET
+
+```http
+GET http://localhost:5000/
+```
+
+### المتوقع
+
+```json
+{
+  "success": true,
+  "message": "Food Ordering API is running"
+}
+```
+
+وجرب كمان:
+
+```http
+GET http://localhost:5000/health
+```
+
+المتوقع:
+
+```json
+{
+  "success": true,
+  "status": "ok"
+}
+```
+
+---
+
+# 1️⃣ Authentication
+
+## 1. Register Customer
+
+### POST
+
+```http
+POST http://localhost:5000/api/auth/register
+```
+
+Body → raw → JSON:
+
+```json
+{
+  "name": "Test Customer",
+  "email": "customer1@test.com",
+  "password": "123456",
+  "role": "customer"
+}
+```
+
+### المتوقع
+
+```text
+201 Created
+```
+
+والـResponse فيه:
+
+```json
+{
+  "success": true,
+  "token": "..."
+}
+```
+
+**انسخ الـtoken وحطه عندك باسم:**
+
+```text
+customerToken
+```
+
+---
+
+## 2. Register Owner
+
+### POST
+
+```http
+POST http://localhost:5000/api/auth/register
+```
+
+```json
+{
+  "name": "Test Owner",
+  "email": "owner1@test.com",
+  "password": "123456",
+  "role": "owner"
+}
+```
+
+المتوقع:
+
+```text
+201 Created
+```
+
+خد الـtoken:
+
+```text
+ownerToken
+```
+
+---
+
+## 3. حاول تعمل Admin
+
+### POST
+
+نفس الـURL:
+
+```http
+POST http://localhost:5000/api/auth/register
+```
+
+```json
+{
+  "name": "Test Admin",
+  "email": "admin@test.com",
+  "password": "123456",
+  "role": "admin"
+}
+```
+
+المتوقع:
+
+```text
+400 Bad Request
+```
+
+وده مقصود؛ الـAdmin مينفعش يتعمل Public Registration.
+
+---
+
+## 4. Email موجود بالفعل
+
+استخدم نفس Email بتاع Customer:
+
+```json
+{
+  "name": "Another Customer",
+  "email": "customer1@test.com",
+  "password": "123456",
+  "role": "customer"
+}
+```
+
+المتوقع:
+
+```text
+400
+```
+
+---
+
+## 5. Missing Fields
+
+```json
+{
+  "name": "Test"
+}
+```
+
+المتوقع:
+
+```text
+400
+```
+
+---
+
+# 2️⃣ Login
+
+## 6. Login Customer
+
+### POST
+
+```http
+POST http://localhost:5000/api/auth/login
+```
+
+```json
+{
+  "email": "customer1@test.com",
+  "password": "123456"
+}
+```
+
+المتوقع:
+
+```text
+200
+```
+
+وخد الـToken لو محتاج تعمل تحديث للـ`customerToken`.
+
+---
+
+## 7. Wrong Password
+
+```json
+{
+  "email": "customer1@test.com",
+  "password": "wrongpassword"
+}
+```
+
+المتوقع:
+
+```text
+401
+```
+
+---
+
+## 8. Login Missing Fields
+
+```json
+{
+  "email": "customer1@test.com"
+}
+```
+
+المتوقع:
+
+```text
+400
+```
+
+---
+
+# 3️⃣ Get Current User
+
+## 9. Get Me
+
+### GET
+
+```http
+GET http://localhost:5000/api/auth/me
+```
+
+Headers:
+
+```text
+Authorization: Bearer YOUR_CUSTOMER_TOKEN
+```
+
+المتوقع:
+
+```text
+200
+```
+
+---
+
+## 10. بدون Token
+
+نفس الـURL بدون Authorization.
+
+المتوقع:
+
+```text
+401
+```
+
+---
+
+## 11. Token غلط
+
+```text
+Authorization: Bearer abc123
+```
+
+المتوقع:
+
+```text
+401
+```
+
+---
+
+# 4️⃣ Restaurants
+
+## 12. Get Restaurants
+
+### GET
+
+```http
+GET http://localhost:5000/api/restaurants
+```
+
+مش محتاج Token.
+
+المتوقع:
+
+```text
+200
+```
+
+---
+
+## 13. Create Restaurant بالـOwner
+
+### POST
+
+```http
+POST http://localhost:5000/api/restaurants
+```
+
+Headers:
+
+```text
+Authorization: Bearer OWNER_TOKEN
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "name": "Test Restaurant",
+  "description": "A test restaurant",
+  "address": "Cairo, Egypt",
+  "isOpen": true
+}
+```
+
+المتوقع:
+
+```text
+201
+```
+
+### 🔴 خد بالك
+
+الـResponse هيكون فيه:
+
+```json
+{
+  "data": {
+    "restaurant": {
+      "_id": "..."
+    }
+  }
+}
+```
+
+انسخ `_id`.
+
+سمّيه:
+
+```text
+restaurantId
+```
+
+ده مهم جدًا للـMeals والـOrders.
+
+---
+
+# 5️⃣ Restaurant Authorization
+
+## 14. Customer يحاول يعمل Restaurant
+
+نفس Request رقم 13، لكن:
+
+```text
+Authorization: Bearer CUSTOMER_TOKEN
+```
+
+المتوقع:
+
+```text
+403
+```
+
+---
+
+## 15. بدون Token
+
+شيل Authorization.
+
+المتوقع:
+
+```text
+401
+```
+
+---
+
+## 16. Get Restaurant
+
+### GET
+
+```http
+GET http://localhost:5000/api/restaurants/RESTAURANT_ID
+```
+
+المتوقع:
+
+```text
+200
+```
+
+---
+
+## 17. Restaurant ID غلط
+
+```http
+GET http://localhost:5000/api/restaurants/123
+```
+
+المتوقع:
+
+```text
+404
+```
+
+---
+
+# 6️⃣ Update Restaurant
+
+## 18. Owner Update
+
+### PATCH
+
+```http
+PATCH http://localhost:5000/api/restaurants/RESTAURANT_ID
+```
+
+Headers:
+
+```text
+Authorization: Bearer OWNER_TOKEN
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "name": "Updated Test Restaurant",
+  "description": "Updated description",
+  "address": "Giza, Egypt",
+  "isOpen": true
+}
+```
+
+المتوقع:
+
+```text
+200
+```
+
+---
+
+# 7️⃣ اعمل Owner تاني
+
+محتاجين Owner مختلف لاختبار الـAuthorization.
+
+### POST
+
+```http
+POST http://localhost:5000/api/auth/register
+```
+
+```json
+{
+  "name": "Second Owner",
+  "email": "owner2@test.com",
+  "password": "123456",
+  "role": "owner"
+}
+```
+
+خد الـToken:
+
+```text
+otherOwnerToken
+```
+
+---
+
+## 19. Owner تاني يحاول يعدل Restaurant
+
+```http
+PATCH http://localhost:5000/api/restaurants/RESTAURANT_ID
+```
+
+Authorization:
+
+```text
+Bearer OTHER_OWNER_TOKEN
+```
+
+المتوقع:
+
+```text
+403
+```
+
+وده اختبار مهم جدًا.
+
+---
+
+# 8️⃣ Meals
+
+**ماتمسحش الـRestaurant لسه.**
+
+## 20. Create Meal
+
+### POST
+
+```http
+POST http://localhost:5000/api/restaurants/RESTAURANT_ID/meals
+```
+
+Headers:
+
+```text
+Authorization: Bearer OWNER_TOKEN
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "name": "Classic Burger",
+  "description": "Beef burger with fries",
+  "price": 150,
+  "isAvailable": true
+}
+```
+
+المتوقع:
+
+```text
+201
+```
+
+خد:
+
+```text
+data._id
+```
+
+وسميه:
+
+```text
+mealId
+```
+
+---
+
+# 9️⃣ Get Meals
+
+## 21. Get Restaurant Meals
+
+```http
+GET http://localhost:5000/api/restaurants/RESTAURANT_ID/meals
+```
+
+مش محتاج Token.
+
+المتوقع:
+
+```text
+200
+```
+
+---
+
+## 22. Get Meal By ID
+
+```http
+GET http://localhost:5000/api/meals/MEAL_ID
+```
+
+المتوقع:
+
+```text
+200
+```
+
+---
+
+## 23. Meal ID غلط
+
+```http
+GET http://localhost:5000/api/meals/123
+```
+
+المتوقع:
+
+```text
+400
+```
+
+---
+
+# 🔟 Update Meal
+
+### PATCH
+
+```http
+PATCH http://localhost:5000/api/meals/MEAL_ID
+```
+
+Headers:
+
+```text
+Authorization: Bearer OWNER_TOKEN
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "name": "Double Classic Burger",
+  "price": 180,
+  "isAvailable": true
+}
+```
+
+المتوقع:
+
+```text
+200
+```
+
+---
+
+## 24. Customer يحاول يعدل Meal
+
+نفس الـRequest لكن:
+
+```text
+Authorization: Bearer CUSTOMER_TOKEN
+```
+
+المتوقع:
+
+```text
+403
+```
+
+---
+
+## 25. Owner تاني يحاول يعدل Meal
+
+```text
+Authorization: Bearer OTHER_OWNER_TOKEN
+```
+
+المتوقع:
+
+```text
+403
+```
+
+وده مهم جدًا لأنه بيختبر إن الـOwner مش قادر يعدل Meals بتاعة Restaurant مش بتاعته.
+
+---
+
+# 1️⃣1️⃣ Orders
+
+دلوقتي عندنا:
+
+```text
+customerToken
+ownerToken
+restaurantId
+mealId
+```
+
+والمطعم لازم يكون:
+
+```json
+"isOpen": true
+```
+
+والـMeal:
+
+```json
+"isAvailable": true
+```
+
+## 26. Customer يعمل Order
+
+### POST
+
+```http
+POST http://localhost:5000/api/orders
+```
+
+Headers:
+
+```text
+Authorization: Bearer CUSTOMER_TOKEN
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "restaurant": "RESTAURANT_ID",
+  "items": [
+    {
+      "meal": "MEAL_ID",
+      "quantity": 2
+    }
+  ]
+}
+```
+
+المفروض:
+
+```text
+201
+```
+
+والـResponse فيه:
+
+```text
+data._id
+```
+
+خده وسميه:
+
+```text
+orderId
+```
+
+### المفروض الحساب يكون:
+
+لو السعر:
+
+```text
+180
+```
+
+والكمية:
+
+```text
+2
+```
+
+يبقى:
+
+```text
+totalPrice = 360
+```
+
+---
+
+# 1️⃣2️⃣ Get My Orders
+
+## 27.
+
+```http
+GET http://localhost:5000/api/orders/my-orders
+```
+
+Headers:
+
+```text
+Authorization: Bearer CUSTOMER_TOKEN
+```
+
+المتوقع:
+
+```text
+200
+```
+
+وهتشوف الـOrder اللي عملته.
+
+---
+
+# 1️⃣3️⃣ Get Specific Order
+
+## 28.
+
+```http
+GET http://localhost:5000/api/orders/ORDER_ID
+```
+
+Headers:
+
+```text
+Authorization: Bearer CUSTOMER_TOKEN
+```
+
+المتوقع:
+
+```text
+200
+```
+
+---
+
+# 1️⃣4️⃣ Owner يشوف Orders
+
+## 29.
+
+```http
+GET http://localhost:5000/api/orders/restaurant
+```
+
+Headers:
+
+```text
+Authorization: Bearer OWNER_TOKEN
+```
+
+المتوقع:
+
+```text
+200
+```
+
+وهتشوف الـOrder بتاع Restaurant بتاعك.
+
+---
+
+# 1️⃣5️⃣ Customer يحاول يشوف Restaurant Orders
+
+نفس الـRequest لكن:
+
+```text
+Authorization: Bearer CUSTOMER_TOKEN
+```
+
+المتوقع:
+
+```text
+403
+```
+
+---
+
+# 1️⃣6️⃣ Update Order Status
+
+دلوقتي الـOrder حالته:
+
+```text
+Pending
+```
+
+## 30. Pending → Confirmed
+
+### PATCH
+
+```http
+PATCH http://localhost:5000/api/orders/ORDER_ID/status
+```
+
+Headers:
+
+```text
+Authorization: Bearer OWNER_TOKEN
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "status": "Confirmed"
+}
+```
+
+المتوقع:
+
+```text
+200
+```
+
+---
+
+## 31. Confirmed → Preparing
+
+نفس الـURL:
+
+```json
+{
+  "status": "Preparing"
+}
+```
+
+المتوقع:
+
+```text
+200
+```
+
+---
+
+## 32. Preparing → OutForDelivery
+
+```json
+{
+  "status": "OutForDelivery"
+}
+```
+
+المتوقع:
+
+```text
+200
+```
+
+---
+
+## 33. OutForDelivery → Delivered
+
+```json
+{
+  "status": "Delivered"
+}
+```
+
+المتوقع:
+
+```text
+200
+```
+
+كده اختبرنا الـworkflow كامل.
+
+---
+
+# ⚠️ اختبار مهم جدًا للـOrder Status
+
+بعد ما بقى:
+
+```text
+Delivered
+```
+
+حاول:
+
+```json
+{
+  "status": "Pending"
+}
+```
+
+المفروض:
+
+```text
+400
+```
+
+لأن الـtransition مش مسموح.
+
+---
+
+# 1️⃣7️⃣ Cancel Order
+
+**اعمل Order جديد** عشان يكون `Pending`، أو اعمل الاختبار ده قبل ما تغير الـOrder الأول.
+
+Customer:
+
+```http
+POST http://localhost:5000/api/orders/ORDER_ID/cancel
+```
+
+Headers:
+
+```text
+Authorization: Bearer CUSTOMER_TOKEN
+```
+
+المتوقع لو `Pending`:
+
+```text
+200
+```
+
+وحالته تبقى:
+
+```text
+Cancelled
+```
+
+وبعدها حاول تعمل:
+
+```text
+Confirmed
+```
+
+المفروض:
+
+```text
+400
+```
+
+---
+
+# 1️⃣8️⃣ Gemini AI
+
+عندك Endpoint:
+
+```http
+POST http://localhost:5000/api/ai/summarize-meal
+```
+
+Headers:
+
+```text
+Content-Type: application/json
+```
+
+Body:
+
+```json
+{
+  "mealName": "Classic Burger",
+  "mealDescription": "A juicy beef burger served with crispy fries and fresh vegetables."
+}
+```
+
+لو `GEMINI_API` شغال عندك:
+
+```text
+200
+```
+
+والـResponse هيكون تقريبًا:
+
+```json
+{
+  "success": true,
+  "summary": "..."
+}
+```
+
+لو الـAPI key مش متظبط:
+
+```text
+503
+```
+
+وده طبيعي.
+
+---
+
+# 1️⃣9️⃣ Delete Meal
+
+بعد ما خلصت اختبارات الـOrders:
+
+### DELETE
+
+```http
+DELETE http://localhost:5000/api/meals/MEAL_ID
+```
+
+Headers:
+
+```text
+Authorization: Bearer OWNER_TOKEN
+```
+
+المتوقع:
+
+```text
+200
+```
+
+---
+
+# 2️⃣0️⃣ Delete Restaurant
+
+**آخر Request خالص.**
+
+```http
+DELETE http://localhost:5000/api/restaurants/RESTAURANT_ID
+```
+
+Headers:
+
+```text
+Authorization: Bearer OWNER_TOKEN
+```
+
+المتوقع:
+
+```text
+200
+```
+
+
