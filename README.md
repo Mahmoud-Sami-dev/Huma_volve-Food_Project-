@@ -1,379 +1,146 @@
-# Team 3 — Food Ordering API
+Team 3 — Food Ordering API
+Backend RESTful API for a Food Ordering system using Node.js, Express.js, MongoDB/Mongoose, JWT authentication and optional Gemini AI meal summaries.
 
-Backend RESTful API for the Food Ordering system built with **Node.js**, **Express.js**, and **MongoDB (Mongoose)**.
+1. Project structure
+src/
+├── config/
+├── controllers/
+├── middleware/
+├── models/
+├── routes/
+├── services/
+├── utils/
+├── app.js
+└── server.js
+src/server.js is the real application entry point. The root server.js is only a backward-compatible wrapper.
 
----
+2. Setup
+Requirements:
 
-## Authentication & Authorization Module
+Node.js 18+
+MongoDB Atlas or local MongoDB
+Install packages:
 
-**Assigned Engineer:** Mohamed Mostafa  
-**Scope:** User Data Model, Password Hashing, User Registration, Login, Stateless Logout, Get Current User, JWT Token Generation/Verification, and Shared Authentication & Role Authorization Middlewares.
+npm install
+Create .env in the project root from .env.example:
 
----
-
-### Table of Contents
-1. [Environment Variables](#environment-variables)
-2. [Installation & Running](#installation--running)
-3. [User Data Model](#user-data-model)
-4. [API Endpoints Summary](#api-endpoints-summary)
-5. [Endpoints Specification](#endpoints-specification)
-   - [1. Register a User](#1-register-a-user)
-   - [2. Login](#2-login)
-   - [3. Get Current User](#3-get-current-user)
-   - [4. Logout](#4-logout)
-6. [Shared Middlewares (For Team Members)](#shared-middlewares-for-team-members)
-   - [How to Protect Routes (`protect`)](#how-to-protect-routes-protect)
-   - [How to Authorize Roles (`authorize`)](#how-to-authorize-roles-authorize)
-7. [Edge Cases Handled](#edge-cases-handled)
-8. [Postman Collection](#postman-collection)
-
----
-
-### Environment Variables
-
-Create a `.env` file in the root directory based on `.env.example`:
-
-```env
 PORT=5000
 NODE_ENV=development
-MONGO_URI=mongodb://localhost:27017/food_ordering_db
-JWT_SECRET=your_jwt_secret_key_here
+MONGODB_URI=mongodb://127.0.0.1:27017/food_ordering_db
+JWT_SECRET=replace_with_a_long_random_secret
 JWT_EXPIRE=7d
-```
+GEMINI_API=your_gemini_api_key_here
+GEMINI_MODEL=gemini-3.5-flash
+Do not commit .env or real API keys to GitHub.
 
-| Variable | Description | Default |
-|---|---|---|
-| `PORT` | The port the Express server listens on | `5000` |
-| `NODE_ENV` | Environment mode (`development`, `production`) | `development` |
-| `MONGO_URI` | MongoDB connection URI | `mongodb://localhost:27017/food_ordering_db` |
-| `JWT_SECRET` | Secret key used to sign and verify JSON Web Tokens | Required (Do not commit to Git) |
-| `JWT_EXPIRE` | Expiration time for generated JWTs | `7d` |
+3. Run
+Development:
 
----
-
-### Installation & Running
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Start development server with nodemon
 npm run dev
+Production-style:
 
-# 3. Start in production mode
 npm start
-```
+Health check:
 
----
+GET http://localhost:5000/health
+4. Authentication
+Register
+POST /api/auth/register
 
-### User Data Model
+{
+  "name": "John Customer",
+  "email": "customer@example.com",
+  "password": "password123",
+  "role": "customer"
+}
+Public registration supports customer and owner. admin registration is intentionally blocked.
 
-The User model is defined in `src/models/User.js`:
+Login
+POST /api/auth/login
 
-| Field | Type | Description | Rules / Constraints |
-|---|---|---|---|
-| `name` | String | User's full name | Required, trimmed, min 2 chars, max 100 chars |
-| `email` | String | User's email | Required, unique, trimmed, lowercase, valid email format |
-| `password` | String | Hashed password | Required, min 6 chars, `select: false` (never exposed) |
-| `role` | String | Role assigned | Enum: `['admin', 'owner', 'customer']`, default: `'customer'` |
-| `createdAt` | Date | Timestamp | Automatic |
-| `updatedAt` | Date | Timestamp | Automatic |
+Current user
+GET /api/auth/me
 
-* Passwords are automatically hashed with `bcryptjs` using a salt work factor of 10 prior to database insertion.
-* Passwords are never returned in normal query or API responses.
+Header:
 
----
+Authorization: Bearer <JWT>
+Logout
+POST /api/auth/logout
 
-### API Endpoints Summary
+Logout is stateless because JWTs are used. The client should discard its token.
 
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `POST` | `/api/auth/register` | Public | Register a new customer or owner |
-| `POST` | `/api/auth/login` | Public | Authenticate user & receive JWT |
-| `POST` | `/api/auth/logout` | Public | Log out / clear authentication session |
-| `GET` | `/api/auth/me` | Private (Bearer JWT) | Retrieve currently authenticated user profile |
+5. Restaurants
+Method	Endpoint	Access
+POST	/api/restaurants	owner/admin
+GET	/api/restaurants	public
+GET	/api/restaurants/:id	public
+PATCH	/api/restaurants/:id	owner of restaurant/admin
+DELETE	/api/restaurants/:id	owner of restaurant/admin
+6. Meals
+Method	Endpoint	Access
+POST	/api/restaurants/:restaurantId/meals	owner of restaurant/admin
+GET	/api/restaurants/:restaurantId/meals	public
+GET	/api/meals/:id	public
+PATCH	/api/meals/:id	owner of restaurant/admin
+DELETE	/api/meals/:id	owner of restaurant/admin
+Meal create/update/delete now verify the restaurant ownership instead of trusting only the role.
 
----
+7. Orders
+Method	Endpoint	Access
+POST	/api/orders	customer
+GET	/api/orders/my-orders	customer
+GET	/api/orders/:id	owner customer only
+POST	/api/orders/:id/cancel	owner customer only
+GET	/api/orders/restaurant	owner
+PATCH	/api/orders/:id/status	owner of restaurant
+Order creation verifies that the restaurant exists and is open, every meal belongs to that restaurant, every meal is available, and every quantity is valid. The item price is stored as a snapshot in the order.
 
-### Endpoints Specification
+8. AI meal summary
+POST /api/ai/summarize-meal
 
-#### 1. Register a User
-- **Method:** `POST`
-- **Path:** `/api/auth/register`
-- **Access:** Public
-- **Headers:** `Content-Type: application/json`
-- **Request Body:**
-  ```json
-  {
-    "name": "John Customer",
-    "email": "customer@example.com",
-    "password": "password123",
-    "role": "customer"
-  }
-  ```
-  *(Note: `role` is optional and defaults to `"customer"`. Allowed public roles are `"customer"` and `"owner"`. Public registration as `"admin"` is rejected with `400 Bad Request`).*
-- **Success Response (`201 Created`):**
-  ```json
-  {
-    "success": true,
-    "message": "User registered successfully",
-    "token": "eyJhbGciOi...",
-    "data": {
-      "_id": "65df1234567890abcdef1234",
-      "name": "John Customer",
-      "email": "customer@example.com",
-      "role": "customer",
-      "createdAt": "2026-09-11T00:00:00.000Z"
-    }
-  }
-  ```
+{
+  "mealName": "Grilled Chicken",
+  "mealDescription": "Grilled chicken served with rice and vegetables."
+}
+The Gemini model can be changed through GEMINI_MODEL. The default is gemini-3.5-flash.
 
-#### 2. Login
-- **Method:** `POST`
-- **Path:** `/api/auth/login`
-- **Access:** Public
-- **Headers:** `Content-Type: application/json`
-- **Request Body:**
-  ```json
-  {
-    "email": "customer@example.com",
-    "password": "password123"
-  }
-  ```
-- **Success Response (`200 OK`):**
-  ```json
-  {
-    "success": true,
-    "message": "Login successful",
-    "token": "eyJhbGciOi...",
-    "data": {
-      "_id": "65df1234567890abcdef1234",
-      "name": "John Customer",
-      "email": "customer@example.com",
-      "role": "customer"
-    }
-  }
-  ```
+9. Tests
+Authentication unit tests:
 
-#### 3. Get Current User
-- **Method:** `GET`
-- **Path:** `/api/auth/me`
-- **Access:** Private (Protected)
-- **Headers:**
-  ```http
-  Authorization: Bearer <your_jwt_token>
-  ```
-- **Success Response (`200 OK`):**
-  ```json
-  {
-    "success": true,
-    "data": {
-      "_id": "65df1234567890abcdef1234",
-      "name": "John Customer",
-      "email": "customer@example.com",
-      "role": "customer",
-      "createdAt": "2026-09-11T00:00:00.000Z",
-      "updatedAt": "2026-09-11T00:00:00.000Z"
-    }
-  }
-  ```
+npm run test:auth
+Restaurant integration tests (requires MongoDB):
 
-#### 4. Logout
-- **Method:** `POST`
-- **Path:** `/api/auth/logout`
-- **Access:** Public
-- **Success Response (`200 OK`):**
-  ```json
-  {
-    "success": true,
-    "message": "Logged out successfully"
-  }
-  ```
-
----
-
-### Shared Middlewares (For Team Members)
-
-All engineers working on **Restaurant Management**, **Meal Management**, and **Order Management** should import the shared authentication and authorization middlewares from `src/middleware/auth.js`.
-
-```javascript
-const { protect, authorize } = require('../middleware/auth');
-```
-
-#### How to Protect Routes (`protect`)
-The `protect` middleware ensures:
-1. An `Authorization: Bearer <token>` header is present.
-2. The JWT is valid and unexpired.
-3. The user exists in the database.
-4. Attaches the authenticated user to `req.user` (`req.user._id`, `req.user.role`, `req.user.name`, `req.user.email`).
-
-**Usage in your routes:**
-```javascript
-// Example: in orderRoutes.js or restaurantRoutes.js
-router.get('/my', protect, getMyOrders);
-```
-
-#### How to Authorize Roles (`authorize`)
-The `authorize(...roles)` middleware checks whether the authenticated user has one of the allowed roles. If not, it automatically responds with `403 Forbidden`.
-
-**Usage in your routes:**
-```javascript
-// Only restaurant owners can create or manage restaurants:
-router.post('/restaurants', protect, authorize('owner'), createRestaurant);
-
-// Only owners and admins can update meals:
-router.patch('/meals/:id', protect, authorize('owner', 'admin'), updateMeal);
-
-// Only customers can place orders:
-router.post('/orders', protect, authorize('customer'), createOrder);
-
-// Admin-only route:
-router.get('/admin/users', protect, authorize('admin'), getAllUsers);
-```
-
----
-
-### Edge Cases Handled
-
-| Edge Case | Condition | HTTP Status | Response Message |
-|---|---|---|---|
-| Duplicate Email | Registering with an existing email | `400 Bad Request` | `"Email already registered"` |
-| Missing Registration Fields | Missing name, email, or password | `400 Bad Request` | `"Please provide name, email, and password"` |
-| Weak/Short Password | Password < 6 characters | `400 Bad Request` | `"Password must be at least 6 characters"` |
-| Public Admin Registration | Attempting `role: "admin"` in public registration | `400 Bad Request` | `"Cannot register as admin. Admin accounts cannot be created publicly"` |
-| Invalid Role Input | Role is not customer or owner | `400 Bad Request` | `"Invalid role. Allowed registration roles are: customer, owner"` |
-| Missing Login Credentials | Missing email or password | `400 Bad Request` | `"Please provide email and password"` |
-| User Not Found (Login) | Email does not exist | `401 Unauthorized` | `"Invalid credentials"` |
-| Incorrect Password (Login) | Password hash does not match | `401 Unauthorized` | `"Invalid credentials"` |
-| Missing JWT | No Authorization Bearer header provided | `401 Unauthorized` | `"Not authorized to access this route, no token provided"` |
-| Invalid JWT | Tampered or malformed token string | `401 Unauthorized` | `"Invalid token, authorization denied"` |
-| Expired JWT | Token has surpassed expiration | `401 Unauthorized` | `"Token has expired, please log in again"` |
-| Token User Deleted | User associated with valid token was deleted | `401 Unauthorized` | `"The user belonging to this token no longer exists"` |
-| Unauthorized Role | Authenticated user lacks required role | `403 Forbidden` | `"User role '<role>' is not authorized to access this route"` |
-
----
-
-### Postman Collection
-
-The Postman collection is located in:
-`postman/Food_Ordering_Auth.postman_collection.json`
-
-Import this file directly into Postman to test all 4 endpoints, all authentication failure states, and role-based authorization tests.
-
----
-
-## Restaurant Management Module
-
-**Assigned Engineer:** Mostafa Barakat  
-**Scope:** Full CRUD for restaurants, ownership checks, and open/closed status (`isOpen`).
-
-### Endpoints
-
-| Method | Endpoint | Access | Description |
-| ------ | -------- | ------ | ----------- |
-| POST | `/api/restaurants` | Owner or admin | Create a restaurant |
-| GET | `/api/restaurants` | Public | List restaurants |
-| GET | `/api/restaurants/:id` | Public | Get one restaurant |
-| PATCH | `/api/restaurants/:id` | Owner of that restaurant | Update a restaurant |
-| DELETE | `/api/restaurants/:id` | Owner of that restaurant | Delete a restaurant |
-
-### Restaurant data
-
-`name`, `description`, `address`, `owner` (User id), `isOpen` (default `true`).
-
-### Errors handled
-
-| Case | HTTP |
-| ---- | ---- |
-| Missing or invalid token | `401` |
-| Customer creating/updating/deleting | `403` |
-| Owner modifying a restaurant that is not theirs | `403` |
-| Invalid id or restaurant not found | `404` |
-| Missing name, description, or address | `400` |
-
-Orders should check `isOpen` before accepting an order.
-
-### Postman
-
-`postman/Restaurants.postman_collection.json`
-
-Log in with `POST /api/auth/login` as an owner, then paste the token into `ownerToken`.
-
-### Tests
-
-```bash
 npm run test:restaurants
-```
+Middleware tests:
 
-# Huma_volve-Food_Project-
-Food Ordering API
+npm run test:middleware
+Vitest AI tests:
 
-## Restaurant Management (Mostafa Barakat)
+npm test
 
-This module lets restaurant owners create, read, update, and delete their restaurants. Each restaurant is linked to the logged-in owner. The Orders module can later check `isOpen` and refuse orders when a restaurant is closed.
+10. Postman
+Import these collections:
 
-### Endpoints
+postman/Food_Ordering_Auth.postman_collection.json
+postman/Restaurants.postman_collection.json
+postman/Food_Ordering_Meals.postman_collection.json
+Recommended order:
 
-| Method | Endpoint | Who can use it | Description |
-| ------ | -------- | -------------- | ----------- |
-| POST | `/api/restaurants` | Owner (or admin) | Create a restaurant |
-| GET | `/api/restaurants` | Anyone | List restaurants |
-| GET | `/api/restaurants/:id` | Anyone | Get one restaurant |
-| PATCH | `/api/restaurants/:id` | Owner of that restaurant | Update a restaurant |
-| DELETE | `/api/restaurants/:id` | Owner of that restaurant | Delete a restaurant |
-
-### Restaurant data
-
-- `name` (text, required)
-- `description` (text, required)
-- `address` (text, required)
-- `owner` (the User id from the login token)
-- `isOpen` (true/false, default `true`)
-
-### Errors this module handles
-
-- Missing token on create/update/delete → `401`
-- Customer trying to create/update/delete → `403`
-- Owner trying to change a restaurant that is not theirs → `403`
-- Invalid id or restaurant not found → `404`
-- Missing name, description, or address → `400`
-
-### How to run (this module only)
-
-1. Install [Node.js](https://nodejs.org/) and [MongoDB](https://www.mongodb.com/try/download/community).
-2. Copy `.env.example` to `.env` if needed. Keep `JWT_SECRET` the same value the auth teammate uses when you later connect login.
-3. Install packages and start the API:
-
-```bash
-npm install
-npm start
-```
-
-4. MongoDB must be running on `mongodb://127.0.0.1:27017`. If you use Docker:
-
-```bash
-docker run -d --name food-mongo -p 27017:27017 mongo:7
-```
-
-5. Run tests:
-
-```bash
-node test/restaurantMiddlewareTest.js
-node test/restaurantTest.js
-```
-
-The first file checks login/permission guards and does not need MongoDB. The second file checks full create/read/update/delete and needs MongoDB.
-
-5. Import `postman/Restaurants.postman_collection.json` into Postman. Paste a real owner JWT into `ownerToken` after login exists, or generate a test token (see below).
-
-### Generate a test owner token
-
-Until the auth module is merged, you can create a token in Node:
-
-```js
-const jwt = require('jsonwebtoken');
-console.log(jwt.sign({ id: 'PUT_A_MONGO_OBJECT_ID', role: 'owner' }, process.env.JWT_SECRET, { expiresIn: '1d' }));
-```
-
-Then send it as: `Authorization: Bearer <token>`
-
+Authentication: register customer and owner, then login if needed.
+Restaurants: put the owner/customer/second-owner JWTs in the collection variables.
+Meals: put ownerToken and the real restaurantId in the collection variables. The Create Meal request saves the new mealId automatically.
+Orders: use the real restaurant and meal IDs created during testing.
+11. Important fixes in this version
+Removed the duplicated/conflicting root server implementation by turning root app.js/server.js into wrappers.
+Added startup validation for MONGODB_URI and JWT_SECRET.
+Added /health endpoint and safer request body limits.
+Hardened authentication input validation.
+Protected meal create/update/delete routes with JWT + role authorization.
+Added restaurant ownership checks to meal management.
+Improved MongoDB error handling and graceful server shutdown.
+Added stronger Mongoose validation and useful indexes.
+Fixed owner order listing so owners can see orders from all of their restaurants.
+Fixed Gemini controller error handling and made the model configurable.
+Removed real credentials from .env.example.
+Fixed the stale restaurant middleware test so it matches the current src/middleware/auth.js implementation.
+Updated Postman meal/restaurant requests to use collection variables and authorization headers.
